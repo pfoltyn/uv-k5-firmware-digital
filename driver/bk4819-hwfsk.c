@@ -276,12 +276,21 @@ BK4819_HwFskStatus_t BK4819_HwFskRxCheck(const BK4819_HwFskConfig_t *cfg, uint32
 
 BK4819_HwFskStatus_t BK4819_HwFskRxSetup(const BK4819_HwFskConfig_t *cfg, uint32_t data_bytes)
 {
+    // The convenience form derives REG_58 from the rate; callers wanting one of the
+    // FFSK demodulators pass it explicitly below.
+    return BK4819_HwFskRxSetupMode(cfg, data_bytes, Reg58Rx(cfg->baud));
+}
+
+BK4819_HwFskStatus_t BK4819_HwFskRxSetupMode(const BK4819_HwFskConfig_t *cfg,
+                                             uint32_t data_bytes,
+                                             uint16_t reg58)
+{
     const BK4819_HwFskStatus_t st = BK4819_HwFskRxCheck(cfg, data_bytes);
 
     if (st != BK4819_HWFSK_OK)
         return st;
 
-    BK4819_WriteRegister(BK4819_REG_58, Reg58Rx(cfg->baud));
+    BK4819_WriteRegister(BK4819_REG_58, reg58);
     BK4819_WriteRegister(BK4819_REG_72, BK4819_HwFskBaudWord(cfg->baud));
 
     BK4819_WriteRegister(BK4819_REG_5A, cfg->sync01);

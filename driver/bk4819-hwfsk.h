@@ -115,6 +115,33 @@ BK4819_HwFskStatus_t BK4819_HwFskRxCheck(const BK4819_HwFskConfig_t *cfg,
 BK4819_HwFskStatus_t BK4819_HwFskRxSetup(const BK4819_HwFskConfig_t *cfg,
                                          uint32_t data_bytes);
 
+// As above, but with REG_58 given explicitly, which is what selects the
+// demodulator: plain FSK, or one of the two FFSK tone pairs. Bell 202 is
+// 1200/2200 and the chip offers neither 1200/1800 nor 1200/2400 exactly, so
+// which of them copes better with 2200 is a question for a bench probe rather
+// than for the datasheet. See BK4819_HWFSK_RX58_* below.
+BK4819_HwFskStatus_t BK4819_HwFskRxSetupMode(const BK4819_HwFskConfig_t *cfg,
+                                             uint32_t data_bytes,
+                                             uint16_t reg58);
+
+/* REG_58 values for receive, assembled from BK4819V3Registers_List_20201218.pdf.
+ * Common to all three: <7:6>=11, which the register list does not document at all
+ * but the stock aircopy code sets as though it were the preamble type; <5:4>=11,
+ * the documented preamble type, 11 meaning 0xAA; and <0>=1 to enable.
+ *
+ *   FSK12K    <12:10>=000 mode, <3:1>=000 bandwidth. What POCSAG receives on.
+ *   FSK24K    <12:10>=000 mode, <3:1>=100 bandwidth, which the list gives as
+ *             "100 for FSK 2.4K". The same demodulator with a wider front end, for
+ *             direct FSK above 1200 baud - 2400 works on the 1.2K setting too, but
+ *             only just, and nothing locks at 4800 with it.
+ *   FFSK2400  <12:10>=100 mode, <3:1>=100 bandwidth.
+ *   FFSK1800  <12:10>=111 mode, <3:1>=001 bandwidth.
+ */
+#define BK4819_HWFSK_RX58_FSK12K     0x00F1u
+#define BK4819_HWFSK_RX58_FSK24K     0x00F9u
+#define BK4819_HWFSK_RX58_FFSK2400   0x10F9u
+#define BK4819_HWFSK_RX58_FFSK1800   0x1CF3u
+
 // Throws away any part-received packet and starts hunting for preamble again.
 // Cheaper than a full setup, and needed whenever the sender stops mid packet:
 // the chip would otherwise keep clocking receiver noise into the FIFO until the

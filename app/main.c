@@ -28,6 +28,9 @@
 #ifdef ENABLE_POCSAG
     #include "app/pocsag_ui.h"
 #endif
+#ifdef ENABLE_APRS
+    #include "app/aprs_ui.h"
+#endif
 #include "app/scanner.h"
 
 #ifdef ENABLE_SPECTRUM
@@ -117,6 +120,9 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
                 ACTION_FM();
             #elif defined(ENABLE_POCSAG)
                 APP_RunPocsag();
+                gRequestDisplayScreen = DISPLAY_MAIN;
+            #elif defined(ENABLE_APRS)
+                APP_RunAprs();
                 gRequestDisplayScreen = DISPLAY_MAIN;
             #endif
             break;

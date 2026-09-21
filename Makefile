@@ -19,6 +19,13 @@ ENABLE_FLASHLIGHT               ?= 1
 # ---- CUSTOM MODS ----
 ENABLE_SPECTRUM                 ?= 0
 ENABLE_POCSAG                   ?= 0
+ENABLE_APRS                     ?= 0
+# NOCALL by default: a measurement goes into a dummy load, and putting a real
+# callsign in the default would be an invitation to transmit one by accident.
+APRS_CALL                       ?= NOCALL
+APRS_SSID                       ?= 7
+APRS_PATH                       ?= WIDE1-1,WIDE2-1
+APRS_GRID                       ?= JO90xa
 ENABLE_BIG_FREQ                 ?= 1
 ENABLE_SMALL_BOLD               ?= 1
 ENABLE_CUSTOM_MENU_LAYOUT       ?= 1
@@ -174,6 +181,15 @@ OBJS += app/pocsag.o
 OBJS += app/pocsag_tx.o
 OBJS += app/pocsag_rx.o
 OBJS += app/pocsag_ui.o
+OBJS += driver/bk4819-hwfsk.o
+endif
+ifeq ($(ENABLE_APRS), 1)
+OBJS += app/ax25.o
+OBJS += app/aprs.o
+OBJS += app/aprs_rx.o
+OBJS += app/aprs_tx.o
+OBJS += app/aprs_ui.o
+OBJS += driver/bk4819-afsk.o
 OBJS += driver/bk4819-hwfsk.o
 endif
 ifeq ($(ENABLE_FEAT_F4HWN_SCREENSHOT), 1)
@@ -332,6 +348,19 @@ CFLAGS += -DENABLE_SPECTRUM
 endif
 ifeq ($(ENABLE_POCSAG),1)
 CFLAGS += -DENABLE_POCSAG
+endif
+ifeq ($(ENABLE_APRS),1)
+# Both screens want the same key and there is nowhere near enough flash for the
+# two of them: a POCSAG build leaves about 2kB free and APRS needs several.
+ifeq ($(ENABLE_POCSAG),1)
+$(error ENABLE_APRS and ENABLE_POCSAG cannot be built together, there is not enough flash)
+endif
+CFLAGS += -DENABLE_APRS
+# Callsign, SSID, digipeater path and locator are compiled in: alpha entry is
+# where most of a full APRS screen's flash goes and none of it is needed to get
+# the transmitter measured. Override on the make command line.
+CFLAGS += -DAPRS_UI_CALL=\"$(APRS_CALL)\" -DAPRS_UI_SSID=$(APRS_SSID)
+CFLAGS += -DAPRS_UI_PATH=\"$(APRS_PATH)\" -DAPRS_UI_GRID=\"$(APRS_GRID)\"
 endif
 ifeq ($(ENABLE_SWD),1)
 	CFLAGS += -DENABLE_SWD
