@@ -19,6 +19,15 @@ ENABLE_FLASHLIGHT               ?= 1
 # ---- CUSTOM MODS ----
 ENABLE_SPECTRUM                 ?= 0
 ENABLE_POCSAG                   ?= 0
+ENABLE_SMS                      ?= 0
+# Encryption on by default. Note that encrypting on amateur bands is prohibited in
+# most jurisdictions, which forbid obscuring the meaning of a transmission;
+# authentication is not. Set to 0 for a MAC-free plaintext build.
+ENABLE_SMS_CRYPTO               ?= 1
+SMS_KEY                         ?= change this passphrase
+# Link counters on the SMS screen. Off for use, on for bring-up: every fault this
+# feature had was found by reading them.
+ENABLE_SMS_DEBUG                ?= 0
 ENABLE_BIG_FREQ                 ?= 1
 ENABLE_SMALL_BOLD               ?= 1
 ENABLE_CUSTOM_MENU_LAYOUT       ?= 1
@@ -168,6 +177,15 @@ OBJS += app/main.o
 OBJS += app/menu.o
 ifeq ($(ENABLE_SPECTRUM), 1)
 OBJS += app/spectrum.o
+endif
+ifeq ($(ENABLE_SMS), 1)
+OBJS += app/sms.o
+OBJS += app/sms_link.o
+OBJS += app/sms_ui.o
+ifeq ($(ENABLE_SMS_CRYPTO), 1)
+OBJS += app/sms_crypto.o
+endif
+OBJS += driver/bk4819-hwfsk.o
 endif
 ifeq ($(ENABLE_POCSAG), 1)
 OBJS += app/pocsag.o
@@ -332,6 +350,21 @@ CFLAGS += -DENABLE_SPECTRUM
 endif
 ifeq ($(ENABLE_POCSAG),1)
 CFLAGS += -DENABLE_POCSAG
+endif
+ifeq ($(ENABLE_SMS),1)
+# All three digital features want the same key on the main screen, and none of them
+# fits alongside another in 60kB.
+ifeq ($(ENABLE_POCSAG),1)
+$(error ENABLE_SMS and ENABLE_POCSAG cannot be built together, there is not enough flash)
+endif
+CFLAGS += -DENABLE_SMS
+CFLAGS += -DSMS_UI_KEY='"$(SMS_KEY)"'
+ifeq ($(ENABLE_SMS_CRYPTO),1)
+CFLAGS += -DENABLE_SMS_CRYPTO
+endif
+ifeq ($(ENABLE_SMS_DEBUG),1)
+CFLAGS += -DENABLE_SMS_DEBUG
+endif
 endif
 ifeq ($(ENABLE_SWD),1)
 	CFLAGS += -DENABLE_SWD
