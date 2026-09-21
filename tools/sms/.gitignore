@@ -1,0 +1,5 @@
+sms_test
+*.o
+*.d
+link_test
+crypto_test
