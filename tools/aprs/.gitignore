@@ -1,0 +1,7 @@
+aprs_wav
+ax25_test
+*.wav
+*.d
+*.txt
+afsk_test
+__pycache__/
