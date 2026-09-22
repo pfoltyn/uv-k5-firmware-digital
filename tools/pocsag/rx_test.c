@@ -547,12 +547,18 @@ static void TestFlush(void)
      * Counting back a fixed amount from the end used to do this and no longer can:
      * the encoder appends POCSAG_TAIL_IDLES idles plus batch padding, which for a
      * message this length is longer than the message itself. So find the last
-     * codeword that is neither idle nor sync - codewords are 4 byte aligned once the
-     * preamble is past - and cut before it. */
+     * codeword that is neither idle nor sync - codewords are 4 byte aligned from the
+     * start of data, which is where the modem hands over - and cut before it.
+     *
+     * The scan used to start at POCSAG_PREAMBLE_BITS / 8 while indexing data, which
+     * has already had the preamble and the sync word removed. That put it 72 bytes too
+     * deep, found no codeword at all, and left last_text at 0 - and the CHECK below
+     * only reported it rather than returning, so the subtraction underflowed and fed
+     * FeedChunked four gigabytes. This test never actually exercised POCSAG_RxFlush. */
     const uint8_t *data = Data();
     uint32_t       last_text = 0;
 
-    for (uint32_t off = POCSAG_PREAMBLE_BITS / 8u; off + 4u <= len; off += 4u) {
+    for (uint32_t off = 0; off + 4u <= len; off += 4u) {
         const uint32_t cw = ((uint32_t)data[off] << 24) | ((uint32_t)data[off + 1] << 16) |
                             ((uint32_t)data[off + 2] << 8) | data[off + 3];
 
@@ -560,7 +566,12 @@ static void TestFlush(void)
             last_text = off;
     }
 
-    CHECK(last_text > POCSAG_PREAMBLE_BITS / 8u, "no text codewords found");
+    // Returning rather than only reporting: last_text is about to be used as an
+    // unsigned length, and 0 - 4 is four gigabytes.
+    if (last_text < 8u) {
+        CHECK(false, "no text codewords found past the address");
+        return;
+    }
 
     FeedChunked(&rx, data, last_text - 4u);
 
