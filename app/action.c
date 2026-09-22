@@ -247,6 +247,11 @@ void ACTION_Scan(bool bRestart)
         gScheduleScanListen    = false;
     } else {
         #ifdef ENABLE_FEAT_F4HWN_RESUME_STATE
+        /* gScanRangeStart is only declared when ENABLE_SCAN_RANGES is on, so this
+         * needs its own guard rather than riding on the resume-state one: with scan
+         * ranges off the build failed here on an undeclared identifier. Without them
+         * there is no range to be in, so the state is always the plain one. */
+        #ifdef ENABLE_SCAN_RANGES
         if(gScanRangeStart == 0) // No ScanRange
         {
             gEeprom.CURRENT_STATE = 1;
@@ -255,6 +260,9 @@ void ACTION_Scan(bool bRestart)
         {
             gEeprom.CURRENT_STATE = 2;
         }
+        #else
+        gEeprom.CURRENT_STATE = 1;
+        #endif
         SETTINGS_WriteCurrentState();
         #endif
         // start scanning
